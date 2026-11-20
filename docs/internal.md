@@ -1,4 +1,4 @@
-src/guitarcv_restapi/
+- src/guitarcv_restapi/
     - main.py - входная точка приложения, инициализирует fastapi через uvicorn
     - api/
         - dependencies.py - инициализатор dependency injection для fastapi
