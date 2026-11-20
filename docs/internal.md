@@ -1,0 +1,42 @@
+src/guitarcv_restapi/
+    - main.py - входная точка приложения, инициализирует fastapi через uvicorn
+    - api/
+        - dependencies.py - инициализатор dependency injection для fastapi
+        - v1/
+            - router.py - объединяет эндпоинты в один маршрутизатор
+            - endpoints/
+                - submissions.py - `POST /api/v1/submit-video`
+                - conversions.py - `GET /api/v1/conversions/<id>`, `GET /api/v1/conversions/<id>/result`
+            - schemas/
+                - errors.py - Pydantic-модели ошибок
+                - submissions.py - модели для эндпоинта отправки видео
+                - conversions.py - модели для эндпоинта информации об обработках
+    - core/
+        - config.py - хранилище переменных среды и других конфигураций
+        - exceptions.py - исключения, определяемые приложением
+        - exception_handlers.py - конвертаторы исключений в стандартизированный JSON
+        - lifespan.py - управление запуском и выключением приложения (инициализация бд, восстановка прерванных обработок, очистка использованных файлов)
+    - database/
+        - connection.py - создание и управление SQLite-соединениями, конфигурацией соединений
+        - schema.py - создание таблиц и индексов
+    - models/
+        - conversion.py - внутрипрограммная модель (датакласс) обработки видео
+        - notes.py - внутрипрограммная модель ноты
+    - processing/
+        - tasks.py - обёртка пайплайна обработки, обновление статуса при завершении/ошибке
+        - pipeline.py - пайплайн обработки видео и MIDI-экспорта (возможно, по обработке видео просто будет вызов ML-метода)
+        - media/
+            - ffprobe.py - проверка файла на содержание корректных видеопотоков через ffprobe & `subprocess`
+            - ffmpeg.py - транскодирование видео через ffmpeg & `subprocess`, либо любые другие ffmpeg-действия
+        - midi/
+            - exporter.py - конвертация объектов нот в MIDI-файл
+        - ml/
+            - adapter.py - обёртка для взаимодействия с ML-частью проекта
+    - repositories/
+        - conversion_repository.py - имплементация SQL-запросов, касающихся обработок
+    - services/
+        - submission_service.py - проверка и сохранение загружаемых видео, хранение метаданных, возврат UUID
+        - conversion_service.py - получение информации об обработке
+        - cleanup_service.py - сервис очистки использованных/истекших файлов
+    - storage/
+        - local_storage.py - сохранение загрузок, хранение MIDI-файлов, работа с относительными файловыми путями, удаление локальных файлов

@@ -1,0 +1,27 @@
+[project]
+name = "guitarcv-restapi"
+version = "0.1.0"
+description = "REST API for Guitar CV"
+authors = [
+    { name = "Thix Theven", email = "thix-theven@runderscore.com" }
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]>=0.136.1",
+    "python-multipart"
+]
+
+[project.optional-dependencies]
+dev = [
+    "flake8>=6.0",
+    "mypy>=1.0",
+    "pytest>=9.0.2" 
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
