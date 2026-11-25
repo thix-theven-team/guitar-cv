@@ -96,3 +96,7 @@ __pypackages__/
 
 Thumbs.db
 ehthumbs.db
+
+*.task
+*.jsonl
+config.json

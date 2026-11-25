@@ -1,0 +1,91 @@
+{
+    "app_env": "production",
+    "data_dir": "/app/data",
+    "sqlite_path": "/app/data/conversions.sqlite3",
+    "upload_dir": "/app/data/uploads",
+    "result_dir": "/app/data/results",
+
+    "environment": "production",
+    "debug": true,
+
+    "allowed_video_mime_types": [
+        "video/mp4",
+        "video/webm",
+        "video/quicktime"
+    ],
+
+    "ffprobe_timeout_seconds": 5.0,
+
+    "normalize_videos": false,
+    "normalized_video_extension": ".mp4",
+    "ffmpeg_timeout_seconds": 30.0,
+
+    "cleanup_interval_seconds": 300,
+
+    "input_retention_seconds": 3600,
+    "result_retention_seconds": 3600,
+    "model_metadata_retention_seconds": 10800,
+    "conversion_metadata_retention_seconds": 10800,
+
+    "ml_pipeline_settings": {
+        "device": "cpu",
+        "hand_imgsz": 640,
+        "pose_imgsz": 960,
+        "hand_conf": 0.35,
+        "pose_conf": 0.30,
+        "kp_conf": 0.30,
+        "cls_conf": 0.25,
+
+        "hand_pad": 1.5,
+        "pose_stride": 1,
+        "cls_period_sec": 1.0,
+        "first_wire_is_nut": false,
+        "nut_side_fallback": "right",
+        "rect_h": 240,
+        "strings_6": [6, 5, 4, 3, 2, 1],
+        "strings_4": [4, 3, 2, 1],
+        "v_margin": 0.18,
+        "smooth_win": 3,
+        "min_stable_frames": 3,
+
+        "show_windows": true,
+        "show_crop_window": true,
+
+        "fingertips": {
+            "thumb": 4,
+            "index": 8,
+            "middle": 12,
+            "ring": 16,
+            "pinky": 20
+        },
+
+        "press_fingers": ["index", "middle", "ring", "pinky"],
+
+        "finger_colors": {
+            "thumb": [160, 160, 255],
+            "index": [0, 255, 0],
+            "middle": [255, 160, 0],
+            "ring": [0, 160, 255],
+            "pinky": [255, 0, 255]
+        },
+
+        "tuning": {
+            "6": {
+                "1": 64,
+                "2": 59,
+                "3": 55,
+                "4": 50,
+                "5": 45,
+                "6": 40
+            },
+            "4": {
+                "1": 43,
+                "2": 38,
+                "3": 33,
+                "4": 28
+            }
+        },
+
+        "note_names": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    }
+}

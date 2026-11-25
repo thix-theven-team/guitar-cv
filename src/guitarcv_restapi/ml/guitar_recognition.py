@@ -309,7 +309,7 @@ def run_pipeline(video_path, hand_model_path, guitar_model_path, pose_model_path
     model_pose = YOLO(pose_model_path)
     model_guitar = YOLO(guitar_model_path)
     if model_pose.task != "pose":
-        raise ValueError(f"Модель ладов должна быть pose, а не '{model_pose.task}'. Проверь веса.")
+        raise ValueError(f"Fretboard model should be 'pose', but it is currently '{model_pose.task}'.")
     print(f"Задачи моделей: hand={model_hand.task}, frets={model_pose.task}, guitar={model_guitar.task}")
 
     cap = cv2.VideoCapture(video_path)

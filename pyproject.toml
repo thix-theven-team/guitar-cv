@@ -9,14 +9,18 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard]>=0.136.1",
-    "python-multipart"
+    "python-multipart",
+    "numpy==2.4.6",
+    "opencv-python==5.0.0.93",
+    "mediapipe==1.1.1",
+    "ultralytics==8.4.183"
 ]
 
 [project.optional-dependencies]
 dev = [
     "flake8>=6.0",
     "mypy>=1.0",
-    "pytest>=9.0.2" 
+    "pytest>=9.0.2"
 ]
 
 [build-system]

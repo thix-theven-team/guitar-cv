@@ -6,6 +6,11 @@ from guitarcv_restapi.core.exception_handlers import (
 )
 from guitarcv_restapi.core.lifespan import lifespan
 
+from guitarcv_restapi.core.logging import setup as logging_setup
+
+
+logging_setup()
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
