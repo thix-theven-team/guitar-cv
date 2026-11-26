@@ -13,7 +13,8 @@ dependencies = [
     "numpy==2.4.6",
     "opencv-python==5.0.0.93",
     "mediapipe==1.1.1",
-    "ultralytics==8.4.183"
+    "ultralytics==8.4.183",
+    "mido"
 ]
 
 [project.optional-dependencies]

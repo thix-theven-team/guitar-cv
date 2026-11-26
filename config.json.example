@@ -19,6 +19,10 @@
     "normalize_videos": false,
     "normalized_video_extension": ".mp4",
     "ffmpeg_timeout_seconds": 30.0,
+    "video_codec": "libx264",
+    "fps": 15,
+    "max_video_dimension": 1280,
+    "strip_audio": true,
 
     "cleanup_interval_seconds": 300,
 

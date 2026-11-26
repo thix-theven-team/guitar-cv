@@ -61,6 +61,10 @@ class Settings:
     normalize_videos: bool
     normalized_video_extension: str
     ffmpeg_timeout_seconds: float
+    video_codec: str
+    fps: int
+    max_video_dimension: int
+    strip_audio: bool
 
     cleanup_interval_seconds: int
 
@@ -99,6 +103,11 @@ def load_settings() -> Settings:
     }
 
     data["ml_pipeline_settings"] = MLPipelineSettings(**ml_data)
+
+    data.setdefault("video_codec", "libx264")
+    data.setdefault("fps", 15)
+    data.setdefault("max_video_dimension", 1280)
+    data.setdefault("strip_audio", True)
 
     return Settings(**data)
 

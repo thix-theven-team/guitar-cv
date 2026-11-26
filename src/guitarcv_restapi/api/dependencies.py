@@ -10,6 +10,7 @@ from guitarcv_restapi.repositories.conversion_repository import (
 from guitarcv_restapi.services.conversion_service import ConversionService
 from guitarcv_restapi.services.submission_service import SubmissionService
 from guitarcv_restapi.storage.local_storage import LocalStorage
+from guitarcv_restapi.processing.media.ffmpeg import FFmpegProcessor
 from guitarcv_restapi.processing.media.ffprobe import FFprobeValidator
 
 
@@ -33,6 +34,18 @@ def get_ffprobe_validator(
 ) -> FFprobeValidator:
     return FFprobeValidator(
         timeout_seconds=settings.ffprobe_timeout_seconds,
+        allowed_mime_types=settings.allowed_video_mime_types,
+    )
+
+
+def get_ffmpeg_processor(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> FFmpegProcessor:
+    return FFmpegProcessor(
+        timeout_seconds=settings.ffmpeg_timeout_seconds,
+        video_codec=settings.video_codec,
+        fps=settings.fps,
+        strip_audio=settings.strip_audio,
     )
 
 
