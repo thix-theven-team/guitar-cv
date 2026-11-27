@@ -100,3 +100,4 @@ ehthumbs.db
 *.task
 *.jsonl
 config.json
+/data/

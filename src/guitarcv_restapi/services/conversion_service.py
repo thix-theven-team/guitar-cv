@@ -9,10 +9,10 @@ class ConversionService:
         self,
         repository: ConversionRepository,
     ) -> None:
-        ... # TODO
+        self.repository = repository
 
     def get_conversion(
         self,
         conversion_id: str,
     ) -> Conversion | None:
-        ... # TODO
+        return self.repository.get_by_id(conversion_id)

@@ -6,6 +6,8 @@ from typing import TypeAlias
 class Note:
     string_number: int
     fret_number: int
+    midi_note: int | None = None
+    duration_seconds: float | None = None
 
 
 TemporalNotes: TypeAlias = dict[float, list[Note]]

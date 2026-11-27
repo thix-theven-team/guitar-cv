@@ -6,7 +6,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        ffmpeg \
+        libgl1 \
+        libglib2.0-0 \
+        libgomp1 \
+        libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
@@ -17,6 +23,12 @@ RUN groupadd --system app \
     && useradd --system --gid app --create-home app \
     && mkdir -p /app/data/uploads /app/data/results \
     && chown -R app:app /app
+
+COPY models/ ./models/
+COPY config.json ./config.json
+
+ENV GUITARCV_CONFIG_PATH=/app/config.json
+
 USER app
 
 EXPOSE 8000

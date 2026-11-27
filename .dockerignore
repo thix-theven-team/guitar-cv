@@ -1,14 +1,14 @@
 .git
-.gitignore
 .venv/
 venv/
 
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .flake8_cache/
-.coverage
+.coverage*
 htmlcov/
 
 .env
@@ -23,3 +23,5 @@ data/
 .vscode/
 .DS_Store
 Thumbs.db
+tests/
+docs/

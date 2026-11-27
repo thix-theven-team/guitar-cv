@@ -1,7 +1,9 @@
+import logging
+import uuid
+
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO
-import uuid
 
 from guitarcv_restapi.models.conversion import Conversion, ConversionStatus
 from guitarcv_restapi.processing.media.ffprobe import (
@@ -12,6 +14,9 @@ from guitarcv_restapi.repositories.conversion_repository import (
     ConversionRepository,
 )
 from guitarcv_restapi.storage.local_storage import LocalStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 class SubmissionService:
@@ -30,7 +35,6 @@ class SubmissionService:
         file: BinaryIO,
         content_type: str | None,
     ) -> str:
-        # Reject unsupported MIME types before writing the upload to disk.
         self.ffprobe.validate_mime_type(content_type)
 
         conversion_id = uuid.uuid4().hex
@@ -49,7 +53,13 @@ class SubmissionService:
                 input_path=input_path,
             )
         except Exception:
-            self.storage.delete_file(input_path)
+            try:
+                self.storage.delete_file(input_path)
+            except (OSError, ValueError):
+                logger.exception(
+                    "Could not remove uploaded file after submission failure: %s",
+                    input_path,
+                )
             raise
 
         return conversion_id

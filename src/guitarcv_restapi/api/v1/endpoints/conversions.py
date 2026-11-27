@@ -1,24 +1,29 @@
 import logging
-from pathlib import Path
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-from guitarcv_restapi.api.dependencies import get_conversion_service
+from guitarcv_restapi.api.dependencies import (
+    get_conversion_service,
+    get_local_storage,
+)
 from guitarcv_restapi.api.v1.schemas.conversions import (
+    ConversionFailure,
     ConversionStatusResponse,
     FailedConversionResponse,
-    ConversionFailure,
 )
 from guitarcv_restapi.core.exceptions import ApiException
 from guitarcv_restapi.models.conversion import ConversionStatus
 from guitarcv_restapi.services.conversion_service import ConversionService
+from guitarcv_restapi.storage.local_storage import LocalStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
-
-logger = logging.getLogger(__name__)
 
 
 @router.get(
@@ -33,7 +38,6 @@ def get_conversion_status(
         Depends(get_conversion_service),
     ],
 ) -> ConversionStatusResponse:
-
     conversion = conversion_service.get_conversion(conversion_id)
 
     if conversion is None:
@@ -58,8 +62,11 @@ def get_conversion_result(
         ConversionService,
         Depends(get_conversion_service),
     ],
+    storage: Annotated[
+        LocalStorage,
+        Depends(get_local_storage),
+    ],
 ) -> Response:
-
     conversion = conversion_service.get_conversion(conversion_id)
 
     if conversion is None:
@@ -91,26 +98,52 @@ def get_conversion_result(
             status_code=200,
         )
 
+    now = datetime.now(timezone.utc)
+    result_expired = (
+        conversion.result_expires_at is not None
+        and conversion.result_expires_at <= now
+    )
+
+    if result_expired:
+        raise ApiException(
+            status_code=410,
+            code="RESULT_EXPIRED",
+            message="The MIDI result has expired and is no longer available.",
+        )
+
     if conversion.result_path is None:
         logger.error(
             "Conversion %s is marked ready but has no result path.",
             conversion_id,
         )
-
         raise ApiException(
             status_code=500,
             code="RESULT_FILE_MISSING",
             message="The conversion result is temporarily unavailable.",
         )
 
-    result_path = Path(conversion.result_path)
+    result_path = conversion.result_path
+    expected_result_path = storage.result_path_for(conversion_id)
 
-    if not result_path.is_file():
+    # Dont let a stale/malformed database path cause FileResponse to serve
+    # an arbitrary file outside the configured results directory
+    if result_path.resolve() != expected_result_path.resolve():
         logger.error(
-            "Result file for conversion %s does not exist.",
+            "Conversion %s references a result outside its canonical storage path",
             conversion_id,
         )
+        raise ApiException(
+            status_code=500,
+            code="RESULT_FILE_PATH_INVALID",
+            message="The conversion result is temporarily unavailable.",
+        )
 
+    if not storage.file_exists(expected_result_path):
+        logger.error(
+            "Result file for conversion %s does not exist at %s.",
+            conversion_id,
+            expected_result_path,
+        )
         raise ApiException(
             status_code=500,
             code="RESULT_FILE_MISSING",
@@ -118,7 +151,7 @@ def get_conversion_result(
         )
 
     return FileResponse(
-        path=result_path,
+        path=expected_result_path,
         media_type="audio/midi",
         filename="output.mid",
     )

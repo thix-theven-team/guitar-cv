@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
         title="GuitarCV REST API",
         description="REST API for GuitarCV video-to-MIDI conversion",
         version="1.0.0",
+        debug=False,
         lifespan=lifespan,
     )
 

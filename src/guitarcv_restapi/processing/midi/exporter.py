@@ -82,31 +82,33 @@ class MidiExporter:
         track.append(mido.MetaMessage("set_tempo", tempo=tempo, time=0))
 
         sorted_timestamps = sorted(temporal_notes.keys())
+        if any(timestamp < 0 for timestamp in sorted_timestamps):
+            raise ValueError("Note timestamps must be finite and non-negative.")
 
         # (tick, priority, event_type, pitch, velocity)
         # priority: 0 для note_off, 1 для note_on
         events: list[tuple[int, int, str, int, int]] = []
 
         for idx, start_sec in enumerate(sorted_timestamps):
-            notes_at_time = temporal_notes[start_sec]
-            if not notes_at_time:
-                continue
-
-            if idx + 1 < len(sorted_timestamps):
-                end_sec = sorted_timestamps[idx + 1]
-            else:
-                end_sec = (
-                    start_sec
-                    + self.options.default_note_duration_seconds
-                )
-
-            start_tick = self._seconds_to_tick(start_sec, tempo)
-            end_tick = max(
-                start_tick,
-                self._seconds_to_tick(end_sec, tempo),
+            next_start = (
+                sorted_timestamps[idx + 1]
+                if idx + 1 < len(sorted_timestamps)
+                else None
             )
 
-            for note in notes_at_time:
+            for note in temporal_notes[start_sec]:
+                start_tick = self._seconds_to_tick(start_sec, tempo)
+
+                if note.duration_seconds is not None:
+                    if note.duration_seconds <= 0:
+                        raise ValueError("Note duration must be finite and positive.")
+                    end_sec = start_sec + note.duration_seconds
+                elif next_start is not None and next_start > start_sec:
+                    end_sec = next_start
+                else:
+                    end_sec = start_sec + self.options.default_note_duration_seconds
+
+                end_tick = max(start_tick + 1, self._seconds_to_tick(end_sec, tempo))
                 pitch = self._note_to_midi_pitch(note)
                 events.append((start_tick, 1, "note_on", pitch, 80))
                 events.append((end_tick, 0, "note_off", pitch, 0))
