@@ -6,7 +6,7 @@ authors = [
     { name = "Thix Theven", email = "thix-theven@runderscore.com" }
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.136.1",
     "python-multipart",
