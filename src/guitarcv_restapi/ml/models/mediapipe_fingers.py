@@ -1,3 +1,4 @@
+import logging
 import os
 
 import cv2
@@ -5,7 +6,9 @@ import mediapipe as mp
 import numpy as np
 
 from guitarcv_restapi.core import settings
-from guitarcv_restapi.core.logging import logger
+
+
+logger = logging.getLogger(__name__)
 
 
 class MediaPipeFingers:

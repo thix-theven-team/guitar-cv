@@ -14,7 +14,8 @@ from guitarcv_restapi.ml.utils import (
 )
 
 from guitarcv_restapi.core import settings
-from guitarcv_restapi.core.logging import logger
+
+import logging
 
 import json
 import os
@@ -24,6 +25,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 class MLPipeline:

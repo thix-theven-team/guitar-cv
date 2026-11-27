@@ -1,6 +1,9 @@
+import logging
+
 from ultralytics import YOLO
 
-from guitarcv_restapi.core.logging import logger
+
+logger = logging.getLogger(__name__)
 
 
 class ModelStore:
