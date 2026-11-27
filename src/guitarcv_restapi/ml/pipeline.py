@@ -16,11 +16,10 @@ from guitarcv_restapi.ml.utils import (
 from guitarcv_restapi.core import settings
 
 import logging
-
 import json
 import os
 import time
-from collections import Counter, deque
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 import cv2
@@ -49,6 +48,8 @@ class MLPipeline:
         frames_jsonl: str | Path = "frames.jsonl",
         summary_json: str | Path = "summary.json",
     ):
+        timings = defaultdict(float)
+
         video_path_str = str(video_path)
         output_video_str = str(output_video)
         frames_jsonl_path = Path(frames_jsonl)
@@ -108,13 +109,19 @@ class MLPipeline:
     
         try:
             while True:
+                measure = time.perf_counter()
+
                 ret, frame = cap.read()
                 if not ret:
                     break
                 t = frame_idx / fps
                 annotated = frame.copy()
+
+                timings["frame_reading"] += time.perf_counter() - measure
     
                 # --- 1) ГИТАРА: раз в CLS_PERIOD_SEC, между запусками — кэш ---
+                measure = time.perf_counter()
+
                 if frame_idx in cls_sample_indices:
                     # last_cls_t = t
 
@@ -133,14 +140,22 @@ class MLPipeline:
                 strings_map = settings.ml_pipeline_settings.strings_4 \
                     if n_strings == 4 \
                     else settings.ml_pipeline_settings.strings_6
+
+                timings["guitar_cls"] += time.perf_counter() - measure
     
                 # --- 2) РУКА: YOLO каждый кадр ---
+                measure = time.perf_counter()
+
                 rh = self.model_store.model_hand.predict(
                     frame,
                     imgsz=settings.ml_pipeline_settings.hand_imgsz,
                     conf=settings.ml_pipeline_settings.hand_conf,
                     device=settings.ml_pipeline_settings.device, verbose=False
                 )[0]
+
+                timings["hand_predict"] += time.perf_counter() - measure
+
+                measure = time.perf_counter()
 
                 hand_box, hand_conf = None, 0.0
                 if rh.boxes is not None and len(rh.boxes):
@@ -152,10 +167,16 @@ class MLPipeline:
 
                     cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 255), 2)
                     put_ascii(annotated, f"hand {hand_conf:.2f}", (x1, max(15, y1 - 8)), color=(0, 255, 255))
+
+                timings["hand_geometry"] += time.perf_counter() - measure
+                timings["hand"] = timings["hand_predict"] + timings["hand_geometry"]
     
                 # --- 3) ЛАДЫ: YOLO-pose каждый POSE_STRIDE-й кадр, между — кэш ---
                 pose_refreshed = (frame_idx % settings.ml_pipeline_settings.pose_stride == 0)
+
                 if pose_refreshed:
+                    measure = time.perf_counter()
+
                     rp = self.model_store.model_pose.predict(frame,
                         imgsz=settings.ml_pipeline_settings.pose_imgsz,
                         conf=settings.ml_pipeline_settings.pose_conf,
@@ -163,12 +184,22 @@ class MLPipeline:
                         verbose=False
                     )[0]
 
+                    timings["pose_predict"] += time.perf_counter() - measure
+
+                    measure = time.perf_counter()
+
                     wires = sort_wires_nut_first(
                         extract_fret_wires(
                             rp,
                             settings.ml_pipeline_settings.pose_conf,
-                            settings.ml_pipeline_settings.kp_conf),
-                        settings.ml_pipeline_settings.nut_side_fallback)
+                            settings.ml_pipeline_settings.kp_conf
+                        ),
+                        settings.ml_pipeline_settings.nut_side_fallback
+                    )
+
+                    timings["pose_extract_sort"] += time.perf_counter() - measure
+
+                    measure = time.perf_counter()
 
                     if len(wires) >= 2:
                         fb = build_fretboard(wires)
@@ -176,9 +207,25 @@ class MLPipeline:
                         if fb is not None:
                             wires_cache, fb_cache = wires, fb
 
+                    timings["pose_geometry"] += time.perf_counter() - measure
+
                 wires, fb = wires_cache, fb_cache
+
+                timings["fret_pose"] += (
+                    timings["pose_predict"]
+                    + timings["pose_extract_sort"]
+                    + timings["pose_geometry"]
+                ) - timings.get("_previous_fret_pose_total", 0.0)
+
+                timings["_previous_fret_pose_total"] = (
+                    timings["pose_predict"]
+                    + timings["pose_extract_sort"]
+                    + timings["pose_geometry"]
+                )
     
                 # --- 4) ПАЛЬЦЫ: MediaPipe на кропе руки -> глобальные координаты -> (струна, лад) ---
+                measure = time.perf_counter()
+
                 fingers, presses, crop_vis = [], set(), None
                 if hand_box is not None:
                     bx1, by1, bx2, by2 = expand_bbox(hand_box, settings.ml_pipeline_settings.hand_pad, width, height)
@@ -232,8 +279,11 @@ class MLPipeline:
                     for d in smooth.values():
                         d.clear()
                 tracker.update(t, presses)
-    
+                timings["tracker_update"] += time.perf_counter() - measure
+
                 # --- 5) ОТРИСОВКА ГРИФА ---
+                measure = time.perf_counter()
+
                 for i, w in enumerate(wires):
                     p1, p2 = tuple(w["top"].astype(int)), tuple(w["bottom"].astype(int))
                     cv2.line(annotated, p1, p2, (255, 200, 0), 2)
@@ -255,7 +305,11 @@ class MLPipeline:
                 cv2.rectangle(annotated, (5, 5), (10 + 8 * len(banner), 32), (0, 0, 0), -1)
                 put_ascii(annotated, banner, (10, 26), 0.6, (255, 255, 255))
 
+                timings["frame_annotating"] += time.perf_counter() - measure
+
                 # --- 6) ПОТОКОВЫЙ JSONL ---
+                measure = time.perf_counter()
+
                 geom = "cached"
                 if pose_refreshed and fb is not None:
                     geom = {
@@ -292,20 +346,27 @@ class MLPipeline:
                 fjson.write(json.dumps(entry, ensure_ascii=False) + "\n")
                 if frame_idx % 30 == 0:
                     fjson.flush()
+                timings["jsonl_writing"] += time.perf_counter() - measure
     
                 # --- 7) ВИДЕО / ОКНА ---
-                out.write(annotated)
+                if settings.debug:
+                    measure = time.perf_counter()
 
-                if settings.ml_pipeline_settings.show_windows:
-                    cv2.imshow("Pipeline", annotated)
-                    if settings.ml_pipeline_settings.show_crop_window and crop_vis is not None:
-                        scale = min(2.0, 640.0 / max(1, crop_vis.shape[1]))
-                        cv2.imshow("Hand crop + MediaPipe", cv2.resize(crop_vis, None, fx=scale, fy=scale))
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
-                        break
+                    out.write(annotated)
 
-                if frame_idx % 150 == 0:
+                    if settings.ml_pipeline_settings.show_windows:
+                        cv2.imshow("Pipeline", annotated)
+                        if settings.ml_pipeline_settings.show_crop_window and crop_vis is not None:
+                            scale = min(2.0, 640.0 / max(1, crop_vis.shape[1]))
+                            cv2.imshow("Hand crop + MediaPipe", cv2.resize(crop_vis, None, fx=scale, fy=scale))
+                        if cv2.waitKey(1) & 0xFF == ord("q"):
+                            break
+
+                    timings["video_writing"] += time.perf_counter() - measure
+
+                if frame_idx % 150 == 0 and settings.debug:
                     logger.info(f"[{t:.1f}s] frame {frame_idx}/{total} | guitar: {guitar_name} | candidates: {len(presses)}")
+                    logger.info("timings: %s", {k: round(v, 3) for k, v in timings.items()})
                 frame_idx += 1
 
         finally:
