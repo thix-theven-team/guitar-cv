@@ -403,7 +403,7 @@ class MLPipeline:
                 "CLS_PERIOD_SEC": settings.ml_pipeline_settings.cls_period_sec,
                 "MIN_STABLE_FRAMES": settings.ml_pipeline_settings.min_stable_frames,
                 "strings_top_to_bottom": settings.ml_pipeline_settings.strings_4 if n_final == 4 else settings.ml_pipeline_settings.strings_6,
-                "tuning_midi": settings.ml_pipeline_settings.tuning[n_final]
+                "tuning_midi": settings.ml_pipeline_settings.tuning[str(n_final)]
             }
         }
 
