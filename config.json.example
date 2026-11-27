@@ -5,6 +5,7 @@
     "upload_dir": "./data/uploads",
     "result_dir": "./data/results",
     "debug": false,
+    "create_debug_artifacts": false,
     "allowed_video_mime_types": [
         "video/mp4",
         "video/webm",

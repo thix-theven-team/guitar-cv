@@ -54,6 +54,7 @@ class MLPipelineSettings:
 class Settings:
     app_env: str
     debug: bool
+    create_debug_artifacts: bool
 
     data_dir: Path
     sqlite_path: Path

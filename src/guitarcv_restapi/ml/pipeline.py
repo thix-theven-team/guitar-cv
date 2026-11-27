@@ -349,7 +349,7 @@ class MLPipeline:
                 timings["jsonl_writing"] += time.perf_counter() - measure
     
                 # --- 7) ВИДЕО / ОКНА ---
-                if settings.debug:
+                if settings.create_debug_artifacts:
                     measure = time.perf_counter()
 
                     out.write(annotated)
