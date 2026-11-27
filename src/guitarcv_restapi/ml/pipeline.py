@@ -383,7 +383,7 @@ class MLPipeline:
 
         for ev in tracker.events:
             for p in ev["pressed"]:
-                midi = settings.ml_pipeline_settings.tuning[n_final][p["string"]] + p["fret"]
+                midi = settings.ml_pipeline_settings.tuning[str(n_final)][p["string"]] + p["fret"]
                 p["midi_note"] = midi
                 p["note"] = settings.ml_pipeline_settings.note_names[midi % 12] + str(midi // 12 - 1)
 
