@@ -53,12 +53,7 @@ class FFmpegProcessor:
             "-pix_fmt",
             "yuv420p",
             "-vf",
-            (
-                f"fps={self.fps},"
-                f"scale=min({self.max_dimension},iw):min({self.max_dimension},ih)"
-                ":force_original_aspect_ratio=decrease,"
-                "scale=trunc(iw/2)*2:trunc(ih/2)*2"
-            ),
+            f"fps={self.fps},scale=min({self.max_dimension},iw):min({self.max_dimension},ih):force_original_aspect_ratio=decrease:force_divisible_by=2",
             "-r",
             str(self.fps),
         ]
