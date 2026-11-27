@@ -20,6 +20,7 @@ import json
 import os
 import time
 from collections import Counter, deque
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -27,35 +28,53 @@ import numpy as np
 
 class MLPipeline:
     model_store: ModelStore
+    mediapipe_model_path: str | Path
 
-    def __init__(self, model_store: ModelStore):
+    def __init__(
+        self,
+        model_store: ModelStore,
+        mediapipe_model_path: str | Path = "hand_landmarker.task",
+    ):
         self.model_store = model_store
+        self.mediapipe_model_path = mediapipe_model_path
 
     def run(
         self,
-        video_path: str,
-        output_video: str = "output.avi",
-        frames_jsonl: str = "frames.jsonl",
-        summary_json: str = "summary.json"
+        video_path: str | Path,
+        output_video: str | Path = "output.avi",
+        frames_jsonl: str | Path = "frames.jsonl",
+        summary_json: str | Path = "summary.json",
     ):
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            logger.error(f"Could not open video at path {video_path}.")
-            raise ValueError(f"Could not open video at path {video_path}.")
+        video_path_str = str(video_path)
+        output_video_str = str(output_video)
+        frames_jsonl_path = Path(frames_jsonl)
+        summary_json_path = Path(summary_json)
 
-        logger.info(f"Processing video at path {video_path}.")
+        Path(output_video_str).parent.mkdir(parents=True, exist_ok=True)
+        frames_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+        summary_json_path.parent.mkdir(parents=True, exist_ok=True)
+
+        mediapipe_path = Path(self.mediapipe_model_path)
+        mediapipe_path.parent.mkdir(parents=True, exist_ok=True)
+
+        cap = cv2.VideoCapture(video_path_str)
+        if not cap.isOpened():
+            logger.error(f"Could not open video at path {video_path_str}.")
+            raise ValueError(f"Could not open video at path {video_path_str}.")
+
+        logger.info(f"Processing video at path {video_path_str}.")
 
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        out = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height))
+        out = cv2.VideoWriter(output_video_str, cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height))
 
         if settings.ml_pipeline_settings.show_windows:
             cv2.namedWindow("Pipeline", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Pipeline", 1280, 720)
 
-        finger_tracker = MediaPipeFingers()  # TODO: in prod, add an argument to specify the resulting directory
+        finger_tracker = MediaPipeFingers(model_path=str(mediapipe_path))
 
         tracker = PressTracker(settings.ml_pipeline_settings.min_stable_frames)
 
@@ -69,7 +88,7 @@ class MLPipeline:
         guitar_name, guitar_conf, guitar_bbox = None, 0.0, None
         last_cls_t, votes, guitar_timeline = -1e9, Counter(), []
         frame_idx, t0 = 0, time.time()
-        fjson = open(frames_jsonl, "w", encoding="utf-8")
+        fjson = open(frames_jsonl_path, "w", encoding="utf-8")
     
         try:
             while True:
@@ -292,7 +311,7 @@ class MLPipeline:
                 p["note"] = settings.ml_pipeline_settings.note_names[midi % 12] + str(midi // 12 - 1)
 
         summary = {
-            "video": video_path,
+            "video": video_path_str,
             "frames_processed": frame_idx,
             "source_fps": fps,
             "processing_time_sec": round(time.time() - t0, 1),
@@ -311,9 +330,9 @@ class MLPipeline:
             }
         }
 
-        with open(summary_json, "w", encoding="utf-8") as f:
+        with open(summary_json_path, "w", encoding="utf-8") as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
 
-        logger.info(f"\Done. Guitar class: {final_class}. Press events: {len(tracker.events)}")
-        logger.info(f"Video: {os.path.abspath(output_video)}\nJSONL: {os.path.abspath(frames_jsonl)}"
-                    f"\nSummary: {os.path.abspath(summary_json)}")
+        logger.info(f"Done. Guitar class: {final_class}. Press events: {len(tracker.events)}")
+        logger.info(f"Video: {os.path.abspath(output_video_str)}\nJSONL: {os.path.abspath(frames_jsonl_path)}"
+                    f"\nSummary: {os.path.abspath(summary_json_path)}")

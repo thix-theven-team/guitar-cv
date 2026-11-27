@@ -120,7 +120,7 @@ class FFprobeValidator:
             )
         except subprocess.TimeoutExpired as exc:
             raise ApiException(
-                status_code=400,
+                status_code=504,
                 code="VIDEO_VALIDATION_TIMEOUT",
                 message="Video validation timed out.",
             ) from exc
@@ -141,8 +141,8 @@ class FFprobeValidator:
             payload = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
             raise ApiException(
-                status_code=400,
-                code="INVALID_VIDEO",
+                status_code=500,
+                code="INVALID_FFPROBE_OUTPUT",
                 message="Failed to parse video metadata from ffprobe.",
             ) from exc
 
@@ -161,11 +161,16 @@ class FFprobeValidator:
         video_codec_names = tuple(
             str(stream.get("codec_name") or "unknown")
             for stream in streams
-            if isinstance(stream, dict) and stream.get("codec_type") == "video"
+            if isinstance(stream, dict)
+            and stream.get("codec_type") == "video"
+            and not (
+                isinstance(stream.get("disposition"), dict)
+                and stream["disposition"].get("attached_pic") == 1
+            )
         )
         if not video_codec_names:
             raise ApiException(
-                status_code=400,
+                status_code=415,
                 code="NO_VIDEO_STREAM",
                 message="Uploaded file does not contain a video stream.",
             )
