@@ -92,6 +92,18 @@ class MLPipeline:
         guitar_name, guitar_conf, guitar_bbox = None, 0.0, None
         last_cls_t, votes, guitar_timeline = -1e9, Counter(), []
         frame_idx, t0 = 0, time.time()
+
+        max_samples = settings.ml_pipeline_settings.cls_max_samples
+
+        cls_sample_indices = set(
+            np.linspace(
+                0,
+                total - 1,
+                num=min(max_samples, total),
+                dtype=int
+            )
+        ) if total > 0 and max_samples > 0 else set()
+
         fjson = open(frames_jsonl_path, "w", encoding="utf-8")
     
         try:
@@ -103,8 +115,8 @@ class MLPipeline:
                 annotated = frame.copy()
     
                 # --- 1) ГИТАРА: раз в CLS_PERIOD_SEC, между запусками — кэш ---
-                if t - last_cls_t >= settings.ml_pipeline_settings.cls_period_sec:
-                    last_cls_t = t
+                if frame_idx in cls_sample_indices:
+                    # last_cls_t = t
 
                     name, conf, bbox = classify_guitar(self.model_store, frame, settings.ml_pipeline_settings.cls_conf)
                     guitar_timeline.append({"time_sec": round(t, 2), "class": name, "confidence": conf})

@@ -26,6 +26,7 @@ class MLPipelineSettings:
     hand_pad: float
     pose_stride: int
     cls_period_sec: float
+    cls_max_samples: int
 
     first_wire_is_nut: bool
     nut_side_fallback: str
